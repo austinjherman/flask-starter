@@ -1,5 +1,6 @@
 import pytest
-from app import app, db
+from app import app
+from app.extensions import db
 
 
 @pytest.fixture(scope='module')
