@@ -1,8 +1,8 @@
 import os
 from flask import Flask
 from flask_migrate import Migrate
-from app.extensions import api, db
 from flask_restful import Resource
+from app.extensions import api, db, ma
 from app.user.crud import UserListRoute, UserRoute
 
 
@@ -18,6 +18,7 @@ def register_extensions(app):
     db.init_app(app)
     api.init_app(app)
     Migrate(app, db)
+    ma.init_app(app)
 
 
 class HelloWorld(Resource):
