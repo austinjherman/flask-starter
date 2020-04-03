@@ -1,5 +1,10 @@
+import json
+from app.extensions import db
 from app.user.model import User
-from flask_restful import reqparse, abort, Resource
+from flask import request, Response
+from marshmallow import ValidationError
+from flask_restful import abort, Resource
+from app.user.schema import users_schema, user_schema
 
 
 def user_or_abort(user_id):
@@ -9,14 +14,8 @@ def user_or_abort(user_id):
     return user
 
 
-parser = reqparse.RequestParser()
-parser.add_argument('email', type=str, help='The user\'s email.')
-parser.add_argument('name', type=str, help='The user\'s name.')
-parser.add_argument('password', type=str, help='The user\'s password.')
-
-
-# Todo
-# shows a single todo item and lets you delete a todo item
+# User
+# get, update, and delete a user
 class UserRoute(Resource):
 
     def get(self, user_id):
@@ -41,16 +40,33 @@ class UserRoute(Resource):
         # return task, 201
 
 
-# TodoList
-# shows a list of all todos, and lets you POST to add new tasks
+# Users
+# get all users, create a new user
 class UserListRoute(Resource):
+
     def get(self):
-        return User.query.all()
+        all_users = User.query.all()
+        return users_schema.dump(all_users)
 
     def post(self):
-        pass
-        # args = parser.parse_args()
-        # todo_id = int(max(TODOS.keys()).lstrip('todo')) + 1
-        # todo_id = 'todo%i' % todo_id
-        # TODOS[todo_id] = {'task': args['task']}
-        # return TODOS[todo_id], 201
+
+        try:
+            user = user_schema.load(request.get_json())
+
+        except ValidationError as err:
+            msg = json.dumps({
+                'message': err.messages,
+                'valid': err.valid_data
+            })
+            return Response(msg, status=400, mimetype='application/json')
+
+        exists = User.query.filter_by(email=user.email).first()
+        if exists:
+            return Response(json.dumps({
+                'message': 'Email already registered.'
+            }), status=400, mimetype='application/json')
+
+        db.session.add(user)
+        db.session.commit()
+
+        return user_schema.dump(user)
