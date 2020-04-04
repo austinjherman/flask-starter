@@ -26,18 +26,40 @@ class UserRoute(Resource):
             'name': user.name
         }
 
-    def delete(self, todo_id):
+    def delete(self, user_id):
         pass
         # abort_if_todo_doesnt_exist(todo_id)
         # del TODOS[todo_id]
         # return '', 204
 
-    def put(self, todo_id):
-        pass
-        # args = parser.parse_args()
-        # task = {'task': args['task']}
-        # TODOS[todo_id] = task
-        # return task, 201
+    def put(self, user_id):
+
+        user = User.query.filter_by(id=user_id).first()
+        if not user:
+            return Response(json.dumps({
+                'message': 'User with id {} does not exist'.format(user_id)
+            }), status=400, mimetype='application/json')
+
+        try:
+            json_input = user_schema.load(request.get_json(), partial=True)
+
+        except ValidationError as err:
+            msg = json.dumps({
+                'message': err.messages,
+                'valid': err.valid_data
+            })
+            return Response(msg, status=400, mimetype='application/json')
+
+        for prop, value in json_input.__dict__.items():
+            if prop == 'email':
+                exists = User.query.filter_by(email=value).first()
+                if exists:
+                    return Response(json.dumps({
+                        'message': 'Email already registered.'
+                    }), status=400, mimetype='application/json')
+            setattr(user, prop, value)
+
+        return user_schema.dump(user)
 
 
 # Users
