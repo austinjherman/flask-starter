@@ -1,39 +1,44 @@
+import uuid
 import json
+from app.extensions import db
 from app.user.model import User
 from flask import request, Response
-from app.extensions import db, bcrypt
 from marshmallow import ValidationError
 from flask_restful import abort, Resource
+from app.auth.token_required import token_required
 from app.user.schema import users_schema, user_schema
 
 
-def user_or_abort(user_id):
-    user = User.query.filter_by(id=user_id).first()
+def user_or_abort(uuid):
+    user = User.query.filter_by(uuid=uuid).first()
     if not user:
-        abort(404, message="User {} doesn't exist".format(user_id))
+        abort(404, message="User {} doesn't exist".format(uuid))
     return user
 
 
 # User
 # get, update, and delete a user
-class UserRoute(Resource):
+class UserController(Resource):
 
-    def get(self, user_id):
-        user = user_or_abort(user_id)
+    @token_required
+    def get(self, current_user, uuid):
+        user = user_or_abort(uuid)
         return user_schema.dump(user)
 
-    def delete(self, user_id):
-        user = user_or_abort(user_id)
+    @token_required
+    def delete(self, current_user, uuid):
+        user = user_or_abort(uuid)
         db.session.delete(user)
         db.session.commit()
         return user_schema.dump(user)
 
-    def put(self, user_id):
+    @token_required
+    def put(self, current_user, uuid):
 
-        user = User.query.filter_by(id=user_id).first()
+        user = User.query.filter_by(id=uuid).first()
         if not user:
             return Response(json.dumps({
-                'message': 'User with id {} does not exist'.format(user_id)
+                'message': 'User with id {} does not exist'.format(uuid)
             }), status=400, mimetype='application/json')
 
         try:
@@ -59,9 +64,7 @@ class UserRoute(Resource):
                 setattr(user, prop, value)
 
             if prop == 'password':
-                setattr(user, prop, bcrypt.generate_password_hash(
-                    user.password
-                ).decode('utf-8'))
+                setattr(user, prop, User.hash_password(user.password))
 
         db.session.commit()
         return user_schema.dump(user)
@@ -69,9 +72,10 @@ class UserRoute(Resource):
 
 # Users
 # get all users, create a new user
-class UserListRoute(Resource):
+class UserListController(Resource):
 
-    def get(self):
+    @token_required
+    def get(self, current_user):
         all_users = User.query.all()
         return users_schema.dump(all_users)
 
@@ -93,9 +97,8 @@ class UserListRoute(Resource):
                 'message': 'Email already registered.'
             }), status=400, mimetype='application/json')
 
-        user.password = bcrypt.generate_password_hash(
-            user.password
-        ).decode('utf-8')
+        user.uuid = uuid.uuid4()
+        user.password = User.hash_password(user.password)
 
         db.session.add(user)
         db.session.commit()

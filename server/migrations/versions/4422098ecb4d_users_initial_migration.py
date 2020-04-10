@@ -21,11 +21,13 @@ def upgrade():
     op.create_table(
         'users',
         sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('uuid', sa.String(), nullable=False),
         sa.Column('email', sa.String(length=120), nullable=False),
-        sa.Column('password', sa.String(), nullable=False),
         sa.Column('name', sa.String(), nullable=True),
+        sa.Column('password', sa.String(), nullable=False),
         sa.PrimaryKeyConstraint('id'),
-        sa.UniqueConstraint('email')
+        sa.UniqueConstraint('email'),
+        sa.UniqueConstraint('uuid')
     )
     # ### end Alembic commands ###
 

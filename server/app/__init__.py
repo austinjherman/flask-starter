@@ -1,7 +1,6 @@
 import os
 from flask import Flask
-from flask_restful import Resource
-from app.user.crud import UserListRoute, UserRoute
+from app.routes import register_routes
 from app.extensions import api, db, ma, migrate, bcrypt
 
 
@@ -21,14 +20,5 @@ def register_extensions(app):
     bcrypt.init_app(app)
 
 
-class HelloWorld(Resource):
-    def get(self):
-        return {'hello': 'world'}
-
-
-api.add_resource(HelloWorld, '/')
-api.add_resource(UserListRoute, '/users')
-api.add_resource(UserRoute, '/users/<user_id>')
-
-
+register_routes()
 app = create_app()

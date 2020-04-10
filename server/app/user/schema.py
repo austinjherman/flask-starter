@@ -4,13 +4,14 @@ from marshmallow import fields, post_load
 
 
 class UserSchema(ma.Schema):
-    id = fields.Int(dump_only=True)
+    id = fields.Int()
     name = fields.String(required=True)
     email = fields.Email(required=True)
+    uuid = fields.String(dump_only=True)
     password = fields.String(required=True)
 
     class Meta:
-        load_only = ['password']
+        load_only = ['password', 'id']
 
     @post_load
     def make_user(self, data, **kwargs):
